@@ -13,10 +13,14 @@ namespace socialApi
 {
     public class VKProvider
     {
-        VkApi api = new VkApi();
+        private VkApi api = new VkApi();
 
-        public VKProvider(ulong appId, string login, string pasword)
+        private ILogger m_logger;
+
+        public VKProvider(ulong appId, string login, string pasword, ILogger logger)
         {
+            m_logger = logger;
+
             api.Authorize(new ApiAuthParams
             {
                 ApplicationId = appId,
@@ -46,6 +50,7 @@ namespace socialApi
 
                     foreach (var user in users)
                     {
+                        m_logger.Log(user.LastName);
                         result.Add(GetPerson(user));
                     }
                 }

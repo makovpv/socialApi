@@ -76,6 +76,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConsoleLogger.cs" />
+    <Compile Include="ILogger.cs" />
     <Compile Include="Model\Group.cs" />
     <Compile Include="Model\Person.cs" />
     <Compile Include="Program.cs" />

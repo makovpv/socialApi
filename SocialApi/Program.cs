@@ -16,7 +16,8 @@ namespace socialApi
             var vkProvider = new VKProvider(
                 Convert.ToUInt64(mySetting["appId"]),
                 mySetting["login"],
-                mySetting["password"]);
+                mySetting["password"],
+                new ConsoleLogger());
 
             //var persons = new List<Person> { vkProvider.GetPerson(463871143) }; // me
 
@@ -33,6 +34,7 @@ namespace socialApi
                 "public31836774"
             });
 
+            Console.WriteLine("Save");
             //WriteOut(persons);
             SaveToCSV(persons);
 
