@@ -147,5 +147,19 @@ namespace socialApi
 
             return person;
         }
+
+        public List<Group> GetGroupsInfo(List<string> groupNames)
+        {
+            var groups = api.Groups.GetById(groupNames, null, GroupsFields.Activity);
+
+            return
+                groups.Select(g => new Group
+                {
+                    Id = g.Id,
+                    Name = g.Name,
+                    Activity = g.Activity
+                }).ToList();
+
+        }
     }
 }
