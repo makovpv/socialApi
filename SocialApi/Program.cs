@@ -19,17 +19,22 @@ namespace socialApi
                 mySetting["password"],
                 new ConsoleLogger());
 
-            //Console.WriteLine("get persons");
-            //var persons = vkProvider.GetPersons(new List<string> {
+            Console.WriteLine("get persons");
+            var persons = vkProvider.GetPersons(new List<string> {
             //    //"habr",
-            //    "public31836774"
-            //});
+                "public31836774"
+            });
 
-            var groups= vkProvider.GetGroupsInfo(LoadBaseGroups(mySetting["keyGroupsFile"]));
+            var keyGroups= vkProvider.GetGroupsInfo(LoadBaseGroups(mySetting["keyGroupsFile"]));
 
-            
+            foreach (var person in persons)
+            {
+                FilterRepostGroups(person.GroupReposts, keyGroups);
+            }
+
             //WriteOut(persons);
-            //SaveToCSV(persons);
+            SaveToCSV(persons);
+            SaveToCSV(keyGroups);
 
             Console.WriteLine("finished");
             Console.Read();
@@ -64,12 +69,38 @@ namespace socialApi
                 Console.WriteLine($"{person.Id} {person.FirstName} {person.LastName} {person.Gender} {person.BirthDate} {person.Religion}");
                 foreach (var repost in person.GroupReposts)
                 {
-                    Console.WriteLine($"{repost.Key} {repost.Value} reposts");
+                    Console.WriteLine($"{repost.GroupId} {repost.CounterValue} reposts");
                 }
             }
         }
 
-        static void SaveToCSV(List<Person> persons)
+        public static void FilterRepostGroups(List<GroupCounter> repostGroups, List<Group> definedGroups)
+        {
+            if (repostGroups.Count == 0)
+                return;
+
+            repostGroups.RemoveAll(x => !definedGroups.Exists(df => df.Id == x.GroupId));
+
+            
+        }
+
+        static void SaveToCSV(List<Group> groups)
+        {
+            Console.WriteLine("Save groups");
+
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine("Id;Name;Activity");
+
+            foreach (var group in groups)
+            {
+                sb.AppendLine($"{group.Id};{group.Name};{group.Activity}");
+            }
+
+            File.WriteAllText(@"c:\projects\data\keyGroups.csv", sb.ToString());
+        }
+
+            static void SaveToCSV(List<Person> persons)
         {
             Console.WriteLine("Save");
 
@@ -84,7 +115,7 @@ namespace socialApi
                 sb.AppendLine($"{person.Id};{person.FirstName};{person.LastName};{person.Gender};{person.Age};{person.Religion}");
                 foreach (var repost in person.GroupReposts)
                 {
-                    sbReposts.AppendLine($"{person.Id};{repost.Key};{repost.Value}");
+                    sbReposts.AppendLine($"{person.Id};{repost.GroupId};{repost.CounterValue}");
                 }
             }
 

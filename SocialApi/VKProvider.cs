@@ -51,7 +51,7 @@ namespace socialApi
                     foreach (var user in users)
                     {
                         m_logger.Log(user.LastName);
-                        result.Add(GetPerson(user));
+                        result.Add(GetPersonWithReposts(user));
                     }
                 }
             }
@@ -61,15 +61,15 @@ namespace socialApi
 
         public Person GetPerson(long userId)
         {
-            return GetPerson(api.Users.Get(userId, ProfileFields.BirthDate | ProfileFields.Sex | ProfileFields.StandInLife));
+            return GetPersonWithReposts(api.Users.Get(userId, ProfileFields.BirthDate | ProfileFields.Sex | ProfileFields.StandInLife));
         }
 
         public Person GetPerson(string screenName)
         {
-            return GetPerson(api.Users.Get(screenName, ProfileFields.BirthDate | ProfileFields.Sex));
+            return GetPersonWithReposts(api.Users.Get(screenName, ProfileFields.BirthDate | ProfileFields.Sex));
         }
 
-        private Person GetPerson(VkNet.Model.User user)
+        private Person GetPersonWithReposts(VkNet.Model.User user)
         {
             var person = new Person
             {
@@ -84,37 +84,12 @@ namespace socialApi
             if (DateTime.TryParse(user.BirthDate, out DateTime bdate))
                 person.BirthDate = bdate;
 
-            //var likes = api.Likes.GetList(new LikesGetListParams
-            //{
-            //    Type = LikeObjectType.Photo,
-            //    ItemId = 342076961,
-            //    OwnerId = user.Id,
-            //    Filter = LikesFilter.Likes,
-            //    Count = 50
-            //});
-
-            //var favs = api.Fave.GetPosts();
-
             try
             {
-                var wall = api.Wall.Get(new WallGetParams
-                {
-                    OwnerId = user.Id,
-                    Extended = true,
-                    Count = 100
-                });
-            
-
-            //var wall2 = api.Wall.Get(new WallGetParams
-            //{
-            //    OwnerId = user.Id,
-            //    Offset = 101,
-            //    Extended = true,
-            //    Count = 100
-            //});
+                var posts = GetaAllWallPosts(user.Id);
 
                 foreach (var group in
-                    wall.WallPosts.Where(p =>
+                    posts.Where(p =>
                         p.CopyHistory.Count > 0
                         && p.Date.HasValue
                         && DateTime.Today.Subtract(p.Date.Value).TotalDays <= 365)
@@ -122,16 +97,23 @@ namespace socialApi
                         .GroupBy(p => p.CopyHistory.First().OwnerId)
                         .Select(group => new
                         {
-                            Metric = -group.Key,
+                            OwnerId = -group.Key,
                             Count = group.Count()
                         }))
                 {
-                    person.GroupReposts.Add(group.Metric, group.Count);
+                    person.GroupReposts.Add(new GroupCounter
+                    {
+                        GroupId = group.OwnerId,
+                        CounterValue = group.Count
+                    });
                 }
 
+                m_logger.Log($"{person.GroupReposts.Count} groups were found");
             }
-            catch { }
-            //foreach ( var dfdf in wall.WallPosts)
+            catch (Exception ex)
+            {
+                m_logger.Log($"ERROR: {ex.Message}");
+            }
 
             //var personGroups = api.Groups.Get(new GroupsGetParams
             //{
@@ -146,6 +128,36 @@ namespace socialApi
             //var qq = api.Groups.GetById("flightradar24", GroupsFields.All).Activity;
 
             return person;
+        }
+
+
+        private IEnumerable<VkNet.Model.Post> GetaAllWallPosts(long userId)
+        {
+            const int maxPortionSize = 100;
+
+            List<VkNet.Model.Post> result = new List<VkNet.Model.Post>();
+
+            VkNet.Model.WallGetObject wgo;
+            ulong receivedPostCount = 0;
+
+            do
+            {
+                wgo = api.Wall.Get(new WallGetParams
+                {
+                    OwnerId = userId,
+                    Extended = true,
+                    Offset = receivedPostCount,
+                    Count = maxPortionSize
+                });
+
+                result.AddRange(wgo.WallPosts);
+
+                receivedPostCount += Convert.ToUInt64(wgo.WallPosts.Count);
+            }
+            while (wgo.TotalCount > receivedPostCount);
+
+            return result;
+
         }
 
         public List<Group> GetGroupsInfo(List<string> groupNames)

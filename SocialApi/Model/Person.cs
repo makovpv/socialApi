@@ -23,11 +23,11 @@ namespace socialApi.Model
         
         public Dictionary<int, int> GroupLikes { get; set; }
         public Dictionary<int, int> GroupPosts { get; set; }
-        public Dictionary<long?, int> GroupReposts { get; set; }
+        public List<GroupCounter> GroupReposts { get; set; }
 
         public Person()
         {
-            GroupReposts = new Dictionary<long?, int>();
+            GroupReposts = new List<GroupCounter>();
         }
 
         public int? Age { get
